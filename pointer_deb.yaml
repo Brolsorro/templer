@@ -1,0 +1,110 @@
+DEFAULT:
+  desc_name_other: Astra Linux Special Edition Smolensk 1.6
+  run_postgresql_regression_tests: |
+    # Run postgresql regression tests
+    cd /srv/app/Jatoba ; if [ -f parent/GNUmakefile ] ; then cp parent/GNUmakefile external/postgresql/src/test/regress/ ; fi
+    cd /srv/app/Jatoba/external/postgresql ; make -C src/test/regress check
+
+UBUNTU1804:
+  os_name: ubuntu1804
+  docker_image: ubuntu:18.04
+  desc_name: Ubuntu 18.04
+  desc_name_other: Ubuntu GNU/Linux
+  dist_name: ubuntu
+  gcc_exp: |
+      export CC=/opt/gcc-8.1.0/bin/gcc
+      export CXX=/opt/gcc-8.1.0/bin/g++
+  keys_pairs: |
+    REPOKEYID = "51F7B50A5E6FABB9"
+    REPOSECKEYPASS = "Gazprom09"
+    REPOPUBKEYNAME = "${productname}-archive.pub"
+  
+  libncurses5: >
+    , libncurses5
+  repo_seckey_pass: |
+    {{TAB}}echo ${REPOSECKEYPASS} | gpg --batch --no-tty --passphrase-fd 0 -abs -o dists/$$DIST/Release.gpg dists/$$DIST/Release ;\
+    {{TAB}}cp $(_scriptdir)/${REPOPUBKEYNAME} .
+
+  
+ASTRA212:
+  os_name: astra212
+  docker_image: astralinuxceorel:2.12
+  desc_name: Astra Linux Common Edition Orel 2.12
+  dist_name: smolensk
+  gcc_exp: |
+        export CC=/usr/local/bin/gcc
+        export CXX=/usr/local/bin/g++
+  jadog_setup: ${_installdir}/bin/jadog-setup.sh \
+  keys_pairs: |
+    REPOSECKEYPASS = "Jatoba*123"
+    REPOPUBKEYNAME = "${productname}-key.pub"
+  repo_seckey_pass: |
+    {{SPACE}}{{SPACE}}{{SPACE}} echo ${REPOSECKEYPASS} | gpg --batch --no-tty --passphrase-fd 0 -abs -o dists/$$DIST/Release.gpg dists/$$DIST/Release ;\
+    {{TAB}}gpg --export -a -o ${REPOPUBKEYNAME} "Jatoba"
+    #   cp $(_scriptdir)/${REPOPUBKEYNAME} .
+
+ASTRALINUX16SMOLENSK:
+  os_name: astralinux16smolensk
+  docker_image: astra:1.6
+  desc_name: Astra Linux Special Edition Smolensk 1.6
+  gcc_exp:
+    ->: UBUNTU1804
+  dist_name:
+    ->: ASTRA212
+  keys_pairs:
+    ->: ASTRA212
+  repo_seckey_pass:
+    ->: ASTRA212
+  libncurses5:
+    ->: UBUNTU1804
+
+DEBIAN9:
+  (*): ASTRA212
+  os_name: debian9
+  docker_image: debian:9
+  desc_name: Debian 9
+  dist_name: debian
+  desc_name_other: Debian GNU/Linux
+  keys_pairs:
+    ->: UBUNTU1804
+  repo_seckey_pass:
+    ->: UBUNTU1804
+
+DEBIAN10:
+  os_name: debian10
+  docker_image: debian:10
+  desc_name: Debian 10
+  dist_name: debian
+  desc_name_other: Debian GNU/Linux
+  gcc_exp: |
+    export CC=/usr/bin/gcc
+    export CXX=/usr/bin/g++
+  keys_pairs:
+    ->: UBUNTU1804
+  repo_seckey_pass:
+    ->: UBUNTU1804
+  jadog_setup:
+    ->: ASTRA212
+
+UBUNTU2004:
+  (*): UBUNTU1804
+  os_name: ubuntu2004
+  docker_image: ubuntu:20.04
+  desc_name: Ubuntu 20.04
+  desc_name_other: Ubuntu GNU/Linux
+  dist_name: ubuntu
+
+OSNOVA20:
+  (*): UBUNTU1804
+  os_name: osnova20
+  docker_image: osnova:2.0
+  desc_name: ОСНОВА 2.0
+  desc_name_other: ОСНОВА 2.0
+  dist_name: osnova
+  disable_postgis: |
+      # Отключение POSTGIS
+      unset JATOBA_BUILD_POSTGIS
+      {{EMPTY}}
+  jadog_setup:
+    ->: ASTRA212
+  libncurses5: null

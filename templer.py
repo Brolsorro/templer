@@ -13,6 +13,9 @@ from typing import Tuple, List
 sys.path.append('libs')
 from ruamel import yaml
 
+TEMPLER_PROG_NAME = 'templer'
+TEMPLER_VERSION = '1.0.0'
+
 class Utils:
     """
     Утилита для обработки, преобразований различных данных в другие
@@ -619,10 +622,11 @@ if '__main__' == __name__:
     parser = argparse.ArgumentParser(description='Генератор шаблонов',
                                      epilog='Программа, создающая на основе шаблонов и файла-указателя, \
         новые файлы, в которых могут быть подставлены значения, \
-        в зависимости от сущности, которая используется в файле-указателе', add_help=False)
+        в зависимости от сущности, которая используется в файле-указателе', add_help=False,
+        prog=TEMPLER_PROG_NAME)
     parser.add_argument('--os', type=str, required=True,
                         help='Имя сущности, которая используется в файл-указателе')
-    parser.add_argument('--debug', '-d', action='store_true', required=False,
+    parser.add_argument('-d', '--debug', action='store_true', required=False,
                         help='Включить режим отладки')
     parser.add_argument('-v', '--variable', nargs="+", type=str, required=False,
                         help='Добавить переменную для использования в YAML-файле (например, -v VAR=5 or -v VAR1=5 VAR2=5)')
@@ -634,6 +638,8 @@ if '__main__' == __name__:
                         required=False, help='Путь, где расположен файл-указатель (pointer.yaml) По умолчанию программа ищет файл, расположенный в одной директории со скриптом', default='pointer.yaml')
     parser.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
                         help='Показывает доступные команды')
+    parser.add_argument('--version', action='version', version='%(prog)s ' + TEMPLER_VERSION,
+                        help='Показывает версию утилиты')
 
     options = parser.parse_args()
     os_name = options.os

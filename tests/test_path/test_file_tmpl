@@ -1,0 +1,27 @@
+%global JATOBA_MAJ_VER %{getenv:JATOBA_MAJ_VER}
+%global JATOBA_MID_VER %{getenv:JATOBA_MID_VER}
+%global JATOBA_MIN_VER %{getenv:JATOBA_MIN_VER}
+%global JATOBA_REL_VER %{getenv:JATOBA_REL_VER}
+%global JATOBA_EXT_VER %{getenv:JATOBA_EXT_VER}
+%global JATOBA_DIR_HOME %{getenv:JATOBA_DIR_HOME}
+%global POSTGRESQL_MAJ_VER %{getenv:POSTGRESQL_MAJ_VER}
+%global POSTGRESQL_MIN_VER %{getenv:POSTGRESQL_MIN_VER}
+{{find_debug}}
+
+Summary:	PostgreSQL Procedure Language with Security Features
+Name:		jatoba%{JATOBA_MAJ_VER}-%{sname}
+Version:	%{JATOBA_MAJ_VER}.%{JATOBA_MID_VER}.%{JATOBA_MIN_VER}
+Release:	%{JATOBA_REL_VER}
+License:	GIS
+Group:		Applications/Databases
+URL:		https://www.gaz-is.ru/
+
+{{set_verify_method}}
+BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+
+Requires:	jatoba%{JATOBA_MAJ_VER} = %{version}-%{release}
+Provides: %{name} = %{version}-%{release}
+
+%description
+Standard PostgreSQL procedural language with some advanced
+security features. Namely, It is developed procedures for code

@@ -1,0 +1,23 @@
+%global DATABASE_MAJ_VER %{getenv:DATABASE_MAJ_VER}
+%global DATABASE_MID_VER %{getenv:DATABASE_MID_VER}
+%global DATABASE_MIN_VER %{getenv:DATABASE_MIN_VER}
+%global DATABASE_REL_VER %{getenv:DATABASE_REL_VER}
+%global DATABASE_EXT_VER %{getenv:DATABASE_EXT_VER}
+%global DATABASE_DIR_HOME %{getenv:DATABASE_DIR_HOME}
+{{find_debug}}
+
+Summary:	*** Procedure Language with Security Features
+Name:		DATABASE%{DATABASE_MAJ_VER}-%{sname}
+Version:	%{DATABASE_MAJ_VER}.%{DATABASE_MID_VER}.%{DATABASE_MIN_VER}
+Release:	%{DATABASE_REL_VER}
+Group:		Applications/Databases
+
+{{set_verify_method}}
+BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+
+Requires:	DATABASE%{DATABASE_MAJ_VER} = %{version}-%{release}
+Provides: %{name} = %{version}-%{release}
+
+%description
+Standard *** procedural language with some advanced
+security features. Namely, It is developed procedures for code

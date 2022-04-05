@@ -88,6 +88,7 @@ class Utils:
         variables.update(add_var)
         pattern_insert = r'{{%s}}'
         value = stringer
+        # print(stringer)
         reg_finder = re.findall(r'\{\{([A-z,_,0-9]+)\}\}', value)
         find_unused_var = set(reg_finder).difference(set(variables.keys()))
         if find_unused_var:
@@ -627,9 +628,11 @@ class ExtendedDict(dict):
             if param not in one_os:
                 one_os[param]=''
             elif param in one_os:
-                if one_os[param] == None:
+                valParam = one_os[param]
+                if valParam == None:
                     one_os[param]=''
-                one_os[param] = self.utilities._reservedVariables(one_os[param],variables)
+                if type(valParam) is str:
+                    one_os[param] = self.utilities._reservedVariables(one_os[param],variables)
 
         
         # Удаление ненужного параметра с перечислением классов

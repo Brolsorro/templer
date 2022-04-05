@@ -7,10 +7,25 @@
 ### Пример команды
 
 ```
-python .\templer.py --os alt8 -tl .\templates -rt result
+python .\templer.py template --os alt8 -tl .\templates -rt result
 OR
-python3 .\templer.py --os alt8 -tl .\templates -rt result
+python3 .\templer.py template --os alt8 -tl .\templates -rt result
 ```
+### Экспорт YAML файл для определенной сущности ОС
+
+Пример
+```
+python .\templer.py get-os-yaml -os debian10 -p <путь_до_общего_YAML>
+```
+
+Также можно указать несколько ОС
+```
+python .\templer.py get-os-yaml -os debian10 debian9 -p <путь_до_общего_YAML>
+```
+
+В папку `yamls` будет экспортирован YAML по debian.
+
+Его (их) можно независимо использовать в системах с шаблонированием через `jinja`
 
 ### Узнать о дополнительных функциях
 

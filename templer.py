@@ -5,16 +5,16 @@ import pathlib
 import re
 import argparse
 import logging
-
-from os import walk
-from os.path import realpath
-from typing import Tuple, List
+import yaml as depYaml
 
 sys.path.append('libs')
-from ruamel import yaml
+from os import walk
+from os.path import realpath
+from typing import Set, Tuple, List
+from libs.ruamel import yaml
 
 TEMPLER_PROG_NAME = 'templer'
-TEMPLER_VERSION = '1.0.0'
+TEMPLER_VERSION = '1.1.0'
 
 class Utils:
     """
@@ -184,6 +184,9 @@ class ExtendedDict(dict):
         dict ([dict]): Преобразованный и готовый к работе словарь
     """
 
+    def __getitem__(self, __k: object) -> object:
+        return self.dictionary.__getitem__(__k)
+        
     def __init__(self, dictionary: dict, yaml_file_path: str):
         """Иницилизация класса, с указанием глобальных переменных и композитных классов (Utils, logging)
 
@@ -200,6 +203,7 @@ class ExtendedDict(dict):
         self.nameArrowLink = '->'
         self.path_script = pathlib.Path(realpath(__file__))
         self.logging = logging
+        self.pattern_regex = r'\{\{[A-z,0-9,_]{1,}\}\}'
 
         # pre function
         self.dictionaryLines = self.utilities.get_number_lines(yaml_file_path)
@@ -260,8 +264,8 @@ class ExtendedDict(dict):
             str: Возвращает готовый по шаблону файл
         """
         tmpl = "".join(tmpl)
-        pattern_regex = r'\{\{[A-z,0-9,_]{1,}\}\}'
-        find_unused_templates = re.findall(pattern_regex, tmpl)
+        
+        find_unused_templates = re.findall(self.pattern_regex, tmpl)
         deprecated_params = set(
             find_unused_templates).difference(self.allDictParams)
         find_unused_templates = ",".join(find_unused_templates)
@@ -276,10 +280,10 @@ class ExtendedDict(dict):
             logging.info('Переменные-шаблоны <%s> не используются в файле <%s> для <%s> и будут удалены в процессе создания шаблона'
                          % (find_unused_templates, file_name, os_name))
         # зачистка одиночных переменных в строке (с оступами и без)
-        tmpl = re.sub(r"[ ,\t,]+%s\n" % pattern_regex, '', tmpl)
-        tmpl = re.sub(r"\n%s\n" % pattern_regex, '\n', tmpl)
+        tmpl = re.sub(r"[ ,\t,]+%s\n" % self.pattern_regex, '', tmpl)
+        tmpl = re.sub(r"\n%s\n" % self.pattern_regex, '\n', tmpl)
         # Для удаления inline-переменных
-        tmpl = re.sub(r"%s" % pattern_regex, '', tmpl)
+        tmpl = re.sub(r"%s" % self.pattern_regex, '', tmpl)
         return tmpl
 
     def __construct_traceback(self, preclass: str, inherit_class: str, param: str):
@@ -595,69 +599,143 @@ class ExtendedDict(dict):
                 open(directory_result / file_name, 'w',
                      encoding=self.encoding).write(tmpl)
 
-        print("#### Выбранная ОС: %s" % os_name)
+        print("#### Выбранная ОС: %s" % osname)
         print('#####################################')
         print('#### Создание успешно завершено! ####')
         print('#####################################')
 
+    def get_yaml_file_on_operation_name(self,osname:str, path_to_yamls:pathlib.Path,variables:list = [])->None:
+        """Получение YAML файл отдельно выбранной ОС
+        Args:
+            osname (str): Имя операционный системы
+            path_to_yamls (pathlib.Path): Путь до файла-указателя, yaml
 
-def start(os_name):
+        Returns:
+            _type_: Нет возврата, только запись в файл содержимое yaml по выбранной ОС
+        """
+        one_os = self.dictionary.get('DEFAULT',{})
+        one_os.update(self.dictionary[osname])
+        
+        # Получение всех параметров из YAML
+        allParams = []
+        for _os in self.dictionary:
+            allParams.extend(self.dictionary[_os].keys())
+        allParams = list(set(allParams))
+        
+        # Превращение в пустые строки неиспользуемых параметров, и тех, что имеют значение Null
+        for param in allParams:
+            if param not in one_os:
+                one_os[param]=''
+            elif param in one_os:
+                if one_os[param] == None:
+                    one_os[param]=''
+                one_os[param] = self.utilities._reservedVariables(one_os[param],variables)
+
+        
+        # Удаление ненужного параметра с перечислением классов
+        if '(*)' in one_os:
+            del one_os['(*)']
+
+        # TODO: вернуть > и |
+        name_file = osname.lower()
+        if not path_to_yamls.exists(): path_to_yamls.mkdir()
+        with open(path_to_yamls / f'{name_file}_export.yaml', 'wb') as yml:
+            depYaml.dump(one_os,yml,encoding='utf-8',allow_unicode=True,line_break=True,indent=4)
+
+        print(f'Для {osname} был выполнен экспорт YAML-файла в {path_to_yamls}')
+        return
+
+
+def get_pointer_dict(pointer_file:pathlib.Path,os_name:str):
+        pointer_dict = Utils().loadYaml(pointer_file)
+        pointer_dict = ExtendedDict(pointer_dict, pointer_file)
+        pointer_dict.check_dublicate_values_to_one_collection()
+        pointer_dict.check_dublicate_values_between()
+        pointer_dict.check_availability_os(os_name)
+        pointer_dict.checking_inheritance(os_name)
+        pointer_dict.update_dict_default_values(os_name)
+        pointer_dict.finder_links(os_name)
+        return pointer_dict
+
+def start(options):
+    if not options.action:
+        return
     logging.basicConfig(
         format='%(asctime)s | %(levelname)s ::: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.DEBUG if options.debug else logging.WARNING)
 
-    pointer_dict = Utils().loadYaml(POINTER_FILE)
-    pointer_dict = ExtendedDict(pointer_dict, POINTER_FILE)
-    pointer_dict.check_dublicate_values_to_one_collection()
-    pointer_dict.check_dublicate_values_between()
-    pointer_dict.check_availability_os(os_name)
-    pointer_dict.checking_inheritance(os_name)
-    pointer_dict.update_dict_default_values(os_name)
-    pointer_dict.finder_links(os_name)
-    pointer_dict.create_from_template(os_name,
-        PATH_TO_TEMPLATES, PATH_TO_RESULTS, exclude_files=[POINTER_FILE],variable_set=options.variable)
+    # global variables
+    ROOT_PATH = pathlib.Path(__file__).parent.absolute()
+    POINTER_FILE = ROOT_PATH / options.pointer_path
+
+    if options.action == 'get-os-yaml':
+        """Для получения YAML файл из файла-указателя по конкретному вендору
+        """
+        OS_NAME = options.os
+        PATH_TO_YAMLS = ROOT_PATH / 'yamls'
+
+        for _os in OS_NAME:
+            osName = _os.upper()
+            pointer_dict = get_pointer_dict(POINTER_FILE,osName)
+            pointer_dict.get_yaml_file_on_operation_name(
+                osName,
+                PATH_TO_YAMLS,
+                options.variable)
+            del pointer_dict
+        
+        print(f'Для {OS_NAME} был выполнен экспорт YAML-файла в {PATH_TO_YAMLS}')
+
+    if options.action == 'template':
+        """Для постановки значений из файла-указателя в шаблоны
+        """
+        OS_NAME = options.os.upper()
+        pointer_dict = get_pointer_dict(POINTER_FILE,OS_NAME)
+        PATH_TO_TEMPLATES = ROOT_PATH / options.templates_path
+        PATH_TO_RESULTS = ROOT_PATH / options.results_path
+        pointer_dict.create_from_template(OS_NAME,
+            PATH_TO_TEMPLATES, PATH_TO_RESULTS, exclude_files=[POINTER_FILE],variable_set=options.variable)
 
 
 if '__main__' == __name__:
-    # global variables
     parser = argparse.ArgumentParser(description='Генератор шаблонов',
                                      epilog='Программа, создающая на основе шаблонов и файла-указателя, \
         новые файлы, в которых могут быть подставлены значения, \
         в зависимости от сущности, которая используется в файле-указателе', add_help=False,
         prog=TEMPLER_PROG_NAME)
-    parser.add_argument('--os', type=str, required=True,
-                        help='Имя сущности, которая используется в файл-указателе')
-    parser.add_argument('-d', '--debug', action='store_true', required=False,
-                        help='Включить режим отладки')
-    parser.add_argument('-v', '--variable', nargs="+", type=str, required=False,
-                        help='Добавить переменную для использования в YAML-файле (например, -v VAR=5 or -v VAR1=5 VAR2=5)')
-    parser.add_argument('-tl', '--templates_path', type=pathlib.Path,
-                        required=True, help='Путь, где расположены файлы-шаблонов')
-    parser.add_argument('-rt', '--results_path', type=pathlib.Path,
-                        required=True, help='Путь, куда сохранять результаты шаблонизации')
-    parser.add_argument('-p', '--pointer_path', type=pathlib.Path,
-                        required=False, help='Путь, где расположен файл-указатель (pointer.yaml) По умолчанию программа ищет файл, расположенный в одной директории со скриптом', default='pointer.yaml')
     parser.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
                         help='Показывает доступные команды')
     parser.add_argument('--version', action='version', version='%(prog)s ' + TEMPLER_VERSION,
                         help='Показывает версию утилиты')
 
-    options = parser.parse_args()
-    os_name = options.os
-    os_name = os_name.upper()
+    action = parser.add_subparsers(dest='action', required=True)
+    
+    subparser = action.add_parser('template',add_help=False)
+    subparser.add_argument('--os', type=str, required=True,
+                        help='Имя сущности, которая используется в файл-указателе')
+    subparser.add_argument('-d', '--debug', action='store_true', required=False,
+                        help='Включить режим отладки')
+    subparser.add_argument('-v', '--variable', nargs="+", type=str, required=False,
+                        help='Добавить переменную для использования в YAML-файле (например, -v VAR=5 or -v VAR1=5 VAR2=5)')
+    subparser.add_argument('-tl', '--templates_path', type=pathlib.Path,
+                        required=True, help='Путь, где расположены файлы-шаблонов')
+    subparser.add_argument('-rt', '--results_path', type=pathlib.Path,
+                        required=True, help='Путь, куда сохранять результаты шаблонизации')
+    subparser.add_argument('-p', '--pointer_path', type=pathlib.Path,
+                        required=False, help='Путь, где расположен файл-указатель (pointer.yaml) По умолчанию программа ищет файл, расположенный в одной директории со скриптом', default='pointer.yaml')
+    subparser.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
+                        help='Показывает доступные команды')
 
-    ROOT_PATH = pathlib.Path(__file__).parent.absolute()
-    PATH_TO_TEMPLATES = ROOT_PATH / options.templates_path
-    POINTER_FILE = ROOT_PATH / options.pointer_path
-    PATH_TO_RESULTS = ROOT_PATH / options.results_path
 
-    start(os_name)
+    subparser = action.add_parser('get-os-yaml',add_help=False)
+    subparser.add_argument('--os', type=str, required=True,
+                        help='Имя сущности, которая используется в файл-указателе',nargs='+')
+    subparser.add_argument('-d', '--debug', action='store_true', required=False,
+                        help='Включить режим отладки')
+    subparser.add_argument('-v', '--variable', nargs="+", type=str, required=False,
+                        help='Добавить переменную для использования в YAML-файле (например, -v VAR=5 or -v VAR1=5 VAR2=5)')
+    subparser.add_argument('-p', '--pointer_path', type=pathlib.Path,
+                        required=False, help='Путь, где расположен файл-указатель (pointer.yaml) По умолчанию программа ищет файл, расположенный в одной директории со скриптом', default='pointer.yaml')
+    subparser.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
+                        help='Показывает доступные команды')
+    
 
-    # TODO: покрытие тестами unit
-
-    # TODO: Периодически обновлять wiki с названиями ОС
-    # Добавить / взять оттуда названия ОС
-    # https://tfs.gaz-is.ru/DefaultCollection/Jatoba/_wiki/wikis/Jatoba.wiki?wikiVersion=GBwikiMaster&pagePath=%2FJatoba%2F%D0%9F%D0%BE%D0%B4%D0%B4%D0%B5%D1%80%D0%B6%D0%B8%D0%B2%D0%B0%D0%B5%D0%BC%D1%8B%D0%B5%20%D0%9E%D0%A1
-
-    # TODO: Возможно собрать в один файл при использование
-    # pyinstaller
-    #
+    start(parser.parse_args())

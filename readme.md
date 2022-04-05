@@ -11,7 +11,7 @@ python .\templer.py template --os alt8 -tl .\templates -rt result
 OR
 python3 .\templer.py template --os alt8 -tl .\templates -rt result
 ```
-### Экспорт YAML файл для определенной сущности ОС
+### Экспорт YAML файла для определенной сущности ОС
 
 Пример
 ```

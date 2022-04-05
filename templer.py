@@ -631,19 +631,23 @@ class ExtendedDict(dict):
                 valParam = one_os[param]
                 if valParam == None:
                     one_os[param]=''
-                if type(valParam) is str:
-                    one_os[param] = self.utilities._reservedVariables(one_os[param],variables)
+                if type(valParam) is not str:
+                    one_os[param] = str(valParam)
+                
+                one_os[param] = self.utilities._reservedVariables(one_os[param],variables)
 
         
         # Удаление ненужного параметра с перечислением классов
         if '(*)' in one_os:
             del one_os['(*)']
 
-        # TODO: вернуть > и |
+        # TODO: Решить проблему отступов: шаблон не знает о них
+        # TODO: Возможно добавить также исследование файлов-шаблонов для получения неиспользуемых шаблонов
+        
         name_file = osname.lower()
         if not path_to_yamls.exists(): path_to_yamls.mkdir()
         with open(path_to_yamls / f'{name_file}_export.yaml', 'wb') as yml:
-            depYaml.dump(one_os,yml,encoding='utf-8',allow_unicode=True,line_break=True,indent=4)
+            depYaml.dump(one_os,yml,default_style="|",encoding='utf-8',allow_unicode=True,line_break=True,indent=4)
 
         print(f'Для {osname} был выполнен экспорт YAML-файла в {path_to_yamls}')
         return
